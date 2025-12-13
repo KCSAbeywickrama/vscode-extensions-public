@@ -106,13 +106,32 @@ export function DataMapperView(props: DataMapperProps) {
             prevPositionRef.current?.line !== position?.line ||
             prevPositionRef.current?.offset !== position?.offset;
 
-        setViewState(prevState => ({
-            viewId: positionChanged ? name : prevState.viewId || name,
-            codedata: codedata,
-            // Preserve subMappingName only if the position hasn't changed and there is an existing sub-mapping name.
-            // This ensures that changing the position resets the sub-mapping context.
-            subMappingName: !positionChanged && prevState.subMappingName
-        }));
+        // setViewState(prevState => ({
+        //     viewId: positionChanged ? name : prevState.viewId || name,
+        //     codedata: codedata,
+        //     // Preserve subMappingName only if the position hasn't changed and there is an existing sub-mapping name.
+        //     // This ensures that changing the position resets the sub-mapping context.
+        //     subMappingName: !positionChanged && prevState.subMappingName
+        // }));
+        
+        if (viewState.subMappingName) {
+            const viewId = positionChanged ? name : viewState.viewId || name;
+            rpcClient.getDataMapperRpcClient()
+                .getSubMappingCodedata({
+                    filePath,
+                    codedata: codedata,
+                    view: viewId
+                }).then((resp) => {
+                    console.log(">>> [Data Mapper] getSubMappingCodedata response:", resp);
+                    setViewState({ viewId: viewId, codedata: resp.codedata, subMappingName: viewId });
+                });
+        } else {
+            setViewState(prevState => ({
+                viewId: positionChanged ? name : prevState.viewId || name,
+                codedata: codedata,
+                subMappingName: undefined
+            }));
+        }
 
         prevPositionRef.current = position;
     }, [name, codedata, position]);
